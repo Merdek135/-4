@@ -24,65 +24,64 @@ class RobotMotorsControl:
 
     def move(self, left_speed: float, right_speed: float) -> None:
         self.right_motor.set_speed(right_speed)
-def smooth_change_speed(
-    self, target_left: float, target_right: float, step: float = 5.0
-) -> None:
-    """Плавно изменяет скорость двигателей до заданных значений.
+    def smooth_change_speed(self, target_left: float, target_right: float, step: float = 5.0) -> None:
 
-    Args:
-        target_left: Целевая скорость левого двигателя (в %).
-        target_right: Целевая скорость правого двигателя (в %).
-        step: Шаг изменения скорости за одну итерацию (по умолчанию 5.0%).
-    """
-    # Гарантируем, что шаг изменения скорости всегда положительный,
-    # даже если пользователь передал отрицательное число (например, -5.0)
-    step = abs(step)
+        """Плавно изменяет скорость двигателей до заданных значений."""
 
-    # Повторяем цикл до тех пор, пока разница между текущей и целевой скоростью
-    # хотя бы для одного из моторов превышает размер одного шага
-    while (
-        abs(self.left_motor.speed - target_left) > step
-        or abs(self.right_motor.speed - target_right) > step
-    ):
-        # Сдвигаем скорость левого мотора на один шаг ближе к цели
-        self._approach(self.left_motor, target_left, step)
-        # Сдвигаем скорость правого мотора на один шаг ближе к цели
-        self._approach(self.right_motor, target_right, step)
-        # Выводим в консоль промежуточные значения скорости обоих моторов
+        """Args:
+            target_left: Целевая скорость левого двигателя (в %).
+            target_right: Целевая скорость правого двигателя (в %).
+            step: Шаг изменения скорости за одну итерацию (по умолчанию 5.0%).
+        """
+        # Гарантируем, что шаг изменения скорости всегда положительный,
+        # даже если пользователь передал отрицательное число (например, -5.0)
+        step = abs(step)
+
+        # Повторяем цикл до тех пор, пока разница между текущей и целевой скоростью
+        # хотя бы для одного из моторов превышает размер одного шага
+        while (
+            abs (self.left_motor.speed - target_left) > step
+            or abs(self.right_motor.speed - target_right) > step
+        ):
+            # Сдвигаем скорость левого мотора на один шаг ближе к цели
+            self._approach(self.left_motor, target_left, step)
+            # Сдвигаем скорость правого мотора на один шаг ближе к цели
+            self._approach(self.right_motor, target_right, step)
+            # Выводим в консоль промежуточные значения скорости обоих моторов
+            self.print_state()
+
+        # Финальная доводка: когда до цели осталось меньше одного шага,
+        # устанавливаем точные целевые значения, чтобы избежать погрешностей
+        self.left_motor.set_speed(target_left)
+        self.right_motor.set_speed(target_right)
+        # Выводим финальное (достигнутое) состояние двигателей
         self.print_state()
 
-    # Финальная доводка: когда до цели осталось меньше одного шага,
-    # устанавливаем точные целевые значения, чтобы избежать погрешностей
-    self.left_motor.set_speed(target_left)
-    self.right_motor.set_speed(target_right)
-    # Выводим финальное (достигнутое) состояние двигателей
-    self.print_state()
+
+    @staticmethod
+    def _approach(motor: Motor, target: float, step: float) -> None:
+        """Вспомогательный метод: делает ровно один шаг изменения скорости для одного мотора."""
+        # Вычисляем разницу между желаемой и текущей скоростью.
+        # Положительное число — нужно разгоняться, отрицательное — тормозить или ехать назад
+        difference = target - motor.speed
+
+        # Если оставшаяся разница меньше или равна шагу, сразу ставим целевую скорость,
+        # чтобы не «проскочить» нужное значение
+        if abs(difference) <= step:
+            motor.set_speed(target)
+        else:
+            # Определяем знак изменения: +1 для увеличения скорости, -1 для уменьшения
+            direction = 1 if difference > 0 else -1
+            # Прибавляем или отнимаем один шаг от текущей скорости мотора
+            motor.set_speed(motor.speed + direction * step)
 
 
-@staticmethod
-def _approach(motor: Motor, target: float, step: float) -> None:
-    """Вспомогательный метод: делает ровно один шаг изменения скорости для одного мотора."""
-    # Вычисляем разницу между желаемой и текущей скоростью.
-    # Положительное число — нужно разгоняться, отрицательное — тормозить или ехать назад
-    difference = target - motor.speed
-
-    # Если оставшаяся разница меньше или равна шагу, сразу ставим целевую скорость,
-    # чтобы не «проскочить» нужное значение
-    if abs(difference) <= step:
-        motor.set_speed(target)
-    else:
-        # Определяем знак изменения: +1 для увеличения скорости, -1 для уменьшения
-        direction = 1 if difference > 0 else -1
-        # Прибавляем или отнимаем один шаг от текущей скорости мотора
-        motor.set_speed(motor.speed + direction * step)
-
-
-def print_state(self) -> None:
-    """Выводит текущую скорость обоих двигателей с точностью до одного знака после запятой."""
-    print(
-        f"Левый двигатель: {self.left_motor.speed:.1f}%, "
-        f"правый двигатель: {self.right_motor.speed:.1f}%"
-    )
+    def print_state(self) -> None:
+        """Выводит текущую скорость обоих двигателей с точностью до одного знака после запятой."""
+        print(
+            f"Левый двигатель: {self.left_motor.speed:.1f}%, "
+            f"правый двигатель: {self.right_motor.speed:.1f}%"
+        )
 
 
 def main() -> None:
